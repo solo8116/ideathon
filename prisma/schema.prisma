@@ -12,3 +12,107 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id            String         @id @default(uuid())
+  uid           String
+  name          String
+  role          Role           @default(STUDENT)
+  passingYear   Int
+  admissionYear Int
+  linkedInURL   String
+  githubURL     String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  student       Student?
+  alumni        Alumni?
+  adminOfGroup  Group[]        @relation("admin")
+  groups        GroupMember[]
+  participant1  Conversation[] @relation("participant1")
+  participant2  Conversation[] @relation("participant2")
+  messages      Message[]
+}
+
+model Student {
+  id         String @id @default(uuid())
+  email      String
+  semester   Int
+  rollNumber String
+  user       User   @relation(fields: [userId], references: [id])
+  userId     String @unique
+}
+
+model Alumni {
+  id               String @id @default(uuid())
+  email            String
+  documentURL      String
+  documentPublicId String
+  user             User   @relation(fields: [userId], references: [id])
+  userId           String @unique
+}
+
+model Group {
+  id        String        @id @default(uuid())
+  name      String
+  admin     User          @relation("admin", fields: [adminId], references: [id])
+  adminId   String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  members   GroupMember[]
+  messages  Message[]
+}
+
+model GroupMember {
+  id      String @id @default(uuid())
+  group   Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+
+  @@unique([groupId, userId])
+}
+
+model Conversation {
+  id             String    @id @default(uuid())
+  participant1   User      @relation("participant1", fields: [participant1Id], references: [id], onDelete: Cascade)
+  participant1Id String
+  participant2   User      @relation("participant2", fields: [participant2Id], references: [id], onDelete: Cascade)
+  participant2Id String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  messages       Message[]
+
+  @@unique([participant1Id, participant2Id])
+}
+
+model Message {
+  id             String        @id @default(uuid())
+  content        String
+  type           MessageType
+  uploadURL      String?
+  uploadPublicId String?
+  sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId       String
+  group          Group?        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId        String?
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  conversationId String?
+  reply          Message?      @relation("Replies", fields: [replyId], references: [id], onDelete: Cascade)
+  replyId        String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  replies        Message[]     @relation("Replies")
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  IMAGE
+  AUDIO
+  VIDEO
+}
+
+enum Role {
+  ALUMNI
+  STUDENT
+}
