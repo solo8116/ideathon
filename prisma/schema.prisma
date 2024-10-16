@@ -15,7 +15,7 @@ datasource db {
 
 model User {
   id            String         @id @default(uuid())
-  uid           String
+  uid           String         @unique
   name          String
   role          Role           @default(STUDENT)
   passingYear   Int
@@ -38,7 +38,7 @@ model Student {
   email      String
   semester   Int
   rollNumber String
-  user       User   @relation(fields: [userId], references: [id])
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId     String @unique
 }
 
@@ -47,14 +47,14 @@ model Alumni {
   email            String
   documentURL      String
   documentPublicId String
-  user             User   @relation(fields: [userId], references: [id])
+  user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           String @unique
 }
 
 model Group {
   id        String        @id @default(uuid())
   name      String
-  admin     User          @relation("admin", fields: [adminId], references: [id])
+  admin     User          @relation("admin", fields: [adminId], references: [id], onDelete: Cascade)
   adminId   String
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -89,6 +89,7 @@ model Message {
   id             String        @id @default(uuid())
   content        String
   type           MessageType
+  targetType     TargerType
   uploadURL      String?
   uploadPublicId String?
   sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -110,6 +111,11 @@ enum MessageType {
   IMAGE
   AUDIO
   VIDEO
+}
+
+enum TargerType {
+  CONVERSATION
+  GROUP
 }
 
 enum Role {
