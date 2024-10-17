@@ -10,7 +10,7 @@ export const getGroupMessages = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const groupId = req.params.id;
     const messages = await prisma.message.findMany({
       where: {
@@ -52,7 +52,7 @@ export const getConversationMessages = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const conversationId = req.params.id;
     const messages = await prisma.message.findMany({
       where: {
@@ -97,8 +97,12 @@ export const uploadFile = async (
     if (req.file) {
       const result = await uploader(req.file);
       res.status(201).json({
-        uploadUrl: result.secure_url,
-        uploadPublicId: result.public_id,
+        success: true,
+        message: 'file uploaded successfully',
+        data: {
+          uploadUrl: result.secure_url,
+          uploadPublicId: result.public_id,
+        },
       });
     } else {
       throw new Error('file is required');

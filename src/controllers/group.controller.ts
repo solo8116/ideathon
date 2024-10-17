@@ -10,7 +10,7 @@ export const getMyGroups = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const groups = await prisma.groupMember.findMany({
       where: {
         userId,
@@ -36,7 +36,7 @@ export const getGroupById = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const groupId = req.params.id;
     const group = await prisma.groupMember.findUnique({
       where: {
@@ -76,7 +76,7 @@ export const createGroup = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const body: ICreateGroup = req.body;
     const validMembers = await Promise.all(
       body.members?.map(async (memberId) => {
@@ -120,7 +120,7 @@ export const addMember = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const groupId = req.params.id;
     const body: IAddMember = req.body;
     const validMembers = await Promise.all(
@@ -166,7 +166,7 @@ export const removeMember = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const groupId = req.params.id;
     const body: IAddMember = req.body;
     const validMembers = await Promise.all(
@@ -211,9 +211,8 @@ export const leaveGroup = async (
   next: NextFunction,
 ) => {
   try {
-    const userId = req.user?.uid as string;
+    const userId = req.user?.id as string;
     const groupId = req.params.id;
-
     const deletedGroup = await prisma.group.deleteMany({
       where: {
         id: groupId,
