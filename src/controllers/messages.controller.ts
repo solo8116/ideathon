@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
+import { uploader } from '../utils/uploader.util';
 
 const prisma = new PrismaClient();
 
@@ -81,6 +82,27 @@ export const getConversationMessages = async (
       message: 'conversation messages successfully',
       data: messages,
     });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+export const uploadFile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    if (req.file) {
+      const result = await uploader(req.file);
+      res.status(201).json({
+        uploadUrl: result.secure_url,
+        uploadPublicId: result.public_id,
+      });
+    } else {
+      throw new Error('file is required');
+    }
   } catch (error) {
     console.log(error);
     next(error);
