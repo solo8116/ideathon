@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { globalErrorMiddleware, prismaErrorMiddleware } from './middleware';
 import { router } from './routes';
 import { setUpSocketServer } from './socket';
+import cors from 'cors';
 
 const app = express();
 
@@ -11,6 +12,11 @@ const port = process.env.PORT || 3000;
 
 const prisma = new PrismaClient();
 
+app.use(
+  cors({
+    origin: '*',
+  }),
+);
 app.use(express.json());
 app.use('/api', router);
 

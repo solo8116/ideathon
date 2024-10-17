@@ -5,7 +5,11 @@ import { IJoinRoom, IMessage, TRoom } from '../interfaces';
 const prisma = new PrismaClient();
 
 export const setUpSocketServer = (server: any) => {
-  const io = new Server(server);
+  const io = new Server(server, {
+    cors: {
+      origin: '*',
+    },
+  });
   console.log('socket server created');
 
   const rooms: TRoom = new Map();
