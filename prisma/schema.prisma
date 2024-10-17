@@ -88,7 +88,7 @@ model Message {
   id             String        @id @default(uuid())
   content        String
   type           MessageType
-  targetType     TargerType
+  targetType     TargetType
   uploadURL      String?
   uploadPublicId String?
   sender         User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
@@ -107,12 +107,9 @@ model Message {
 enum MessageType {
   TEXT
   FILE
-  IMAGE
-  AUDIO
-  VIDEO
 }
 
-enum TargerType {
+enum TargetType {
   CONVERSATION
   GROUP
 }
