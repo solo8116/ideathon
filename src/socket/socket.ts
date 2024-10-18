@@ -13,6 +13,7 @@ export const setUpSocketServer = (server: any) => {
   console.log('socket server created');
 
   const rooms: TRoom = new Map();
+  const users: Map<string, string> = new Map();
 
   const joinRoom = async (socket: Socket, joinRoomInfo: IJoinRoom) => {
     const room = await checkUserCanJoin(
@@ -99,7 +100,6 @@ export const setUpSocketServer = (server: any) => {
   };
 
   const sendMessage = async (userId: string, sendMessage: IMessage) => {
-    var message;
     const roomId =
       sendMessage.targetType === 'CONVERSATION'
         ? (sendMessage.conversationId as string)
@@ -109,7 +109,29 @@ export const setUpSocketServer = (server: any) => {
       console.log('not in the room');
       return;
     }
-    message = await prisma.message.create({
+    var members: string[] = [];
+    if (sendMessage.targetType === 'CONVERSATION') {
+      const conversation = await prisma.conversation.findUnique({
+        where: {
+          id: roomId,
+        },
+      });
+      members.push(conversation?.participant1Id as string);
+      members.push(conversation?.participant2Id as string);
+    } else {
+      const group = await prisma.group.findUnique({
+        where: {
+          id: roomId,
+        },
+        include: {
+          members: true,
+        },
+      });
+      if (group?.members) {
+        members.push(...group?.members.map((member) => member.userId));
+      }
+    }
+    const message = await prisma.message.create({
       data: {
         content: sendMessage.content as string,
         uploadURL: sendMessage.uploadUrl,
@@ -128,17 +150,26 @@ export const setUpSocketServer = (server: any) => {
         replies: true,
       },
     });
+    const roomMembers = rooms.get(roomId)?.users;
+    members.filter((member) => !roomMembers?.has(member) && users.has(member));
     io.to(rooms.get(roomId)?.roomId as string).emit('recieve_message', {
       message,
+    });
+    members.map((member) => {
+      io.to(users.get(member) as string).emit('recieve_message', {
+        message,
+      });
     });
   };
 
   io.use((socket, next) => {
     // TODO: user authetication
+    next();
   });
 
   io.on('connection', (socket) => {
     const userId = socket.userId as string;
+    users.set(userId, socket.id);
 
     socket.on('join_room', async (joinRoomInfo: IJoinRoom) => {
       await joinRoom(socket, joinRoomInfo);
@@ -172,6 +203,7 @@ export const setUpSocketServer = (server: any) => {
       rooms.forEach((_, roomId) => {
         leaveRoom(userId, roomId);
       });
+      users.delete(userId);
       socket.disconnect();
     });
   });
