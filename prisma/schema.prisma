@@ -35,7 +35,7 @@ model User {
 
 model Student {
   id         String @id @default(uuid())
-  email      String
+  email      String @unique
   semester   Int
   rollNumber String
   user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -44,7 +44,7 @@ model Student {
 
 model Alumni {
   id               String @id @default(uuid())
-  email            String
+  email            String @unique
   documentURL      String
   documentPublicId String
   user             User   @relation(fields: [userId], references: [id], onDelete: Cascade)
