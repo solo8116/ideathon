@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { NextFunction, Request, Response } from 'express';
-import { uploader } from '../utils/uploader.util';
+import { uploader } from '../utils';
 
 const prisma = new PrismaClient();
 
