@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client';
-import { Server, Socket } from 'socket.io';
 import { IJoinRoom, IMessage, TRoom } from '../interfaces';
+import { getAuth } from 'firebase-admin/auth';
+import { firebaseProvider } from '../libs';
+import { Socket } from 'socket.io';
+import { Server } from 'socket.io';
 
 const prisma = new PrismaClient();
 
@@ -151,20 +154,42 @@ export const setUpSocketServer = (server: any) => {
       },
     });
     const roomMembers = rooms.get(roomId)?.users;
-    members.filter((member) => !roomMembers?.has(member) && users.has(member));
+    const filteredMembers = members.filter(
+      (member) => !roomMembers?.has(member) && users.has(member),
+    );
     io.to(rooms.get(roomId)?.roomId as string).emit('recieve_message', {
       message,
     });
-    members.map((member) => {
+    filteredMembers.map((member) => {
       io.to(users.get(member) as string).emit('recieve_message', {
         message,
       });
     });
   };
 
-  io.use((socket, next) => {
-    // TODO: user authetication
-    next();
+  io.use(async (socket, next) => {
+    try {
+      const token = socket.handshake.headers.authorization?.split(' ')[1];
+      if (!token) {
+        next(new Error('token is required'));
+      }
+      const decodedToken = await getAuth(firebaseProvider).verifyIdToken(
+        token as string,
+      );
+      const user = await prisma.user.findUnique({
+        where: {
+          uid: decodedToken.uid,
+        },
+      });
+      if (!user) {
+        next(new Error('user not found'));
+      }
+      socket.userId = user?.id;
+      next();
+    } catch (error) {
+      console.log(error);
+      next(new Error('authentication error'));
+    }
   });
 
   io.on('connection', (socket) => {
