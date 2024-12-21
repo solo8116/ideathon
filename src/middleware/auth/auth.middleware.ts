@@ -1,20 +1,54 @@
 // firebaseAuthMiddleware.ts
-import { Request, Response, NextFunction } from "express";
-import admin from "firebase-admin";
+import { Request, Response, NextFunction } from 'express';
+import { CustomError } from '../../utils';
+import { getAuth } from 'firebase-admin/auth';
+import { firebaseProvider } from '../../libs';
+import { PrismaClient } from '@prisma/client';
 
-// Shared middleware for verifying Firebase ID tokens
-export const authenticateUser = async (req: Request, res: Response, next: NextFunction) => {
-  const idToken = req.headers.authorization?.split("Bearer ")[1];
+const prisma = new PrismaClient();
 
-  if (!idToken) {
-    return res.status(401).json({ message: "Unauthorized access: Token missing." });
-  }
-
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
   try {
-    const decodedToken = await admin.auth().verifyIdToken(idToken);
-    req.body.uid = decodedToken.uid; // Attach UID to the request for further use
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      throw new CustomError(401, 'token is required');
+    }
+    const decodedToken = await getAuth(firebaseProvider).verifyIdToken(token);
+    if (
+      req.baseUrl === '/api/auth/student/signup' ||
+      req.baseUrl === '/api/auth/alumni/signup'
+    ) {
+      req.body = {
+        ...req.body,
+        email: decodedToken.email,
+        name: decodedToken.name,
+        uid: decodedToken.uid,
+        picture: decodedToken?.picture,
+      };
+      next();
+    }
+    const user = await prisma.user.findUnique({
+      where: {
+        uid: decodedToken.uid,
+      },
+    });
+    if (!user) {
+      throw new CustomError(401, 'user not found');
+    }
+    req.user = {
+      id: user?.id,
+      email: decodedToken.email,
+      name: decodedToken.name,
+      uid: decodedToken.uid,
+      picture: decodedToken?.picture,
+    };
+
     next();
   } catch (error) {
-    return res.status(403).json({ message: "Unauthorized access: Invalid token." });
+    next(error);
   }
 };
